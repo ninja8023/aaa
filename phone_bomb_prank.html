@@ -1,0 +1,516 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Cairo:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    font-family: 'Cairo', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .flicker-overlay {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,0,0,0.03) 2px, rgba(255,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 10;
+    animation: scanline 8s linear infinite;
+  }
+
+  @keyframes scanline {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100px; }
+  }
+
+  .screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    gap: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .warning-icon {
+    font-size: 80px;
+    animation: pulse-icon 0.6s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 20px #ff0000);
+  }
+
+  @keyframes pulse-icon {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+  }
+
+  .title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(18px, 4vw, 28px);
+    color: #ff2222;
+    text-align: center;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px #ff0000, 0 0 30px #ff000088;
+    animation: flicker-text 2s infinite;
+    line-height: 1.4;
+  }
+
+  @keyframes flicker-text {
+    0%, 90%, 100% { opacity: 1; }
+    92% { opacity: 0.4; }
+    94% { opacity: 1; }
+    96% { opacity: 0.2; }
+    98% { opacity: 1; }
+  }
+
+  .subtitle {
+    font-family: 'Cairo', sans-serif;
+    font-size: clamp(14px, 3vw, 18px);
+    color: #ff8888;
+    text-align: center;
+    direction: rtl;
+    line-height: 1.8;
+    max-width: 360px;
+    background: rgba(255,0,0,0.06);
+    border: 1px solid rgba(255,0,0,0.2);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+  }
+
+  .timer-ring {
+    position: relative;
+    width: 140px;
+    height: 140px;
+  }
+
+  .timer-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: #330000;
+    stroke-width: 8;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: #ff2222;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 345;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.9s linear, stroke 0.5s;
+    filter: drop-shadow(0 0 6px #ff0000);
+  }
+
+  .timer-number {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 52px;
+    font-weight: 900;
+    color: #ff2222;
+    text-shadow: 0 0 20px #ff000099;
+    animation: num-pulse 0.9s ease-in-out infinite;
+  }
+
+  @keyframes num-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .password-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 340px;
+    direction: rtl;
+  }
+
+  .password-label {
+    font-size: 14px;
+    color: #ff9999;
+    letter-spacing: 1px;
+  }
+
+  .password-input-wrap {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .password-input {
+    flex: 1;
+    background: #1a0000;
+    border: 1.5px solid #ff3333;
+    border-radius: 6px;
+    color: #ff6666;
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    padding: 10px 14px;
+    text-align: center;
+    letter-spacing: 4px;
+    outline: none;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .password-input:focus {
+    box-shadow: 0 0 0 3px rgba(255,0,0,0.25);
+    border-color: #ff6666;
+  }
+
+  .confirm-btn {
+    background: #cc0000;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .confirm-btn:hover { background: #ee0000; }
+  .confirm-btn:active { transform: scale(0.96); }
+
+  .error-msg {
+    font-size: 13px;
+    color: #ff4444;
+    animation: shake 0.3s;
+    display: none;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .bg-flash {
+    position: fixed;
+    inset: 0;
+    background: #ff0000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.08s;
+  }
+
+  .explode-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0a0a0a;
+    z-index: 50;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .explode-screen.show { display: flex; }
+
+  .boom-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(36px, 10vw, 80px);
+    color: #ff2222;
+    font-weight: 900;
+    text-shadow: 0 0 30px #ff0000, 0 0 60px #ff000066;
+    animation: boom-anim 0.5s ease-out;
+  }
+
+  @keyframes boom-anim {
+    0% { transform: scale(0.2); opacity: 0; }
+    60% { transform: scale(1.3); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .explode-subtitle {
+    font-family: 'Cairo', sans-serif;
+    font-size: 20px;
+    color: #ff8888;
+    direction: rtl;
+    max-width: 320px;
+    line-height: 1.7;
+  }
+
+  .smoke-emoji {
+    font-size: 60px;
+    animation: float-up 1s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.4); }
+  }
+
+  .safe-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #001a00;
+    z-index: 50;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .safe-screen.show { display: flex; }
+
+  .safe-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(22px, 6vw, 44px);
+    color: #00ff88;
+    font-weight: 900;
+    text-shadow: 0 0 20px #00ff8888;
+    animation: boom-anim 0.4s ease-out;
+  }
+
+  .safe-sub {
+    font-family: 'Cairo', sans-serif;
+    font-size: 18px;
+    color: #88ffbb;
+    direction: rtl;
+    max-width: 320px;
+    line-height: 1.8;
+  }
+
+  .sparks {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .spark {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ff4400;
+    animation: spark-fly 1.2s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes spark-fly {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.2); }
+  }
+
+  .camera-blink {
+    position: fixed;
+    top: 12px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff2222;
+    box-shadow: 0 0 8px #ff0000;
+    animation: blink-cam 1s step-start infinite;
+    z-index: 20;
+  }
+
+  @keyframes blink-cam {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .rec-label {
+    position: fixed;
+    top: 10px;
+    right: 30px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: #ff2222;
+    z-index: 20;
+    animation: blink-cam 1s step-start infinite;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="flicker-overlay"></div>
+<div class="bg-flash" id="bgFlash"></div>
+<div class="camera-blink"></div>
+<div class="rec-label">● REC</div>
+<div class="sparks" id="sparks"></div>
+
+<div class="screen" id="mainScreen">
+  <div class="warning-icon">☢️</div>
+
+  <div class="title">⚠ تحذير حراري ⚠<br>THERMAL OVERLOAD</div>
+
+  <div class="subtitle">
+    🔥 تم اكتشاف ارتفاع حرارة خطير!<br>
+    البطارية على وشك الانفجار 💥<br>
+    <strong>أدخل كلمة المرور لإيقاف العد التنازلي!</strong>
+  </div>
+
+  <div class="timer-ring">
+    <svg width="140" height="140" viewBox="0 0 140 140">
+      <circle class="ring-bg" cx="70" cy="70" r="55"/>
+      <circle class="ring-progress" cx="70" cy="70" r="55" id="ringProgress"/>
+    </svg>
+    <div class="timer-number" id="timerNum">10</div>
+  </div>
+
+  <div class="password-section">
+    <div class="password-label">🔑 كلمة المرور — Enter Password</div>
+    <div class="password-input-wrap">
+      <input class="password-input" id="pwInput" type="password" maxlength="10" placeholder="• • • •" autocomplete="off" />
+      <button class="confirm-btn" onclick="checkPassword()">تأكيد ✓</button>
+    </div>
+    <div class="error-msg" id="errMsg">❌ كلمة المرور خاطئة!</div>
+  </div>
+</div>
+
+<div class="explode-screen" id="explodeScreen">
+  <div style="font-size:80px" id="fireEmoji">🔥</div>
+  <div class="boom-text">💥 BOOM 💥</div>
+  <div class="explode-subtitle">
+    انتهى الأمر! 😱<br>
+    تليفونك اشتغل نار!<br>
+    <span style="font-size:14px; color: #ff5555;">( مجرد مقلب — تليفونك بخير 😂 )</span>
+  </div>
+</div>
+
+<div class="safe-screen" id="safeScreen">
+  <div style="font-size:70px">✅</div>
+  <div class="safe-text">DEFUSED!</div>
+  <div class="safe-sub">
+    عاش! صح كلمة المرور! 🎉<br>
+    نجّيت التليفون من الانفجار!<br>
+    <span style="font-size:14px; color: #88ffbb;">الباسوورد كانت: <strong>1234</strong></span>
+  </div>
+</div>
+
+<script>
+const PASSWORD = "1234";
+let count = 10;
+let interval = null;
+let exploded = false;
+
+const timerNum = document.getElementById('timerNum');
+const ring = document.getElementById('ringProgress');
+const bgFlash = document.getElementById('bgFlash');
+const errMsg = document.getElementById('errMsg');
+const circumference = 2 * Math.PI * 55;
+
+function setRing(fraction) {
+  ring.style.strokeDashoffset = circumference * (1 - fraction);
+  if (fraction < 0.4) ring.style.stroke = '#ff6600';
+  if (fraction < 0.2) ring.style.stroke = '#ff0000';
+}
+
+setRing(1);
+
+function flashScreen() {
+  bgFlash.style.opacity = '0.25';
+  setTimeout(() => bgFlash.style.opacity = '0', 80);
+}
+
+function spawnSparks() {
+  const container = document.getElementById('sparks');
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const angle = Math.random() * 360;
+    const dist = 60 + Math.random() * 120;
+    const tx = Math.cos(angle * Math.PI / 180) * dist + 'px';
+    const ty = Math.sin(angle * Math.PI / 180) * dist + 'px';
+    s.style.setProperty('--tx', tx);
+    s.style.setProperty('--ty', ty);
+    s.style.left = (30 + Math.random() * 40) + '%';
+    s.style.top = (30 + Math.random() * 40) + '%';
+    s.style.animationDelay = (Math.random() * 0.3) + 's';
+    container.appendChild(s);
+    setTimeout(() => s.remove(), 1500);
+  }
+}
+
+interval = setInterval(() => {
+  if (exploded) return;
+  flashScreen();
+  spawnSparks();
+  count--;
+  timerNum.textContent = count;
+  setRing(count / 10);
+
+  if (count <= 3) {
+    timerNum.style.color = '#ff0000';
+    document.body.style.animation = 'shake-body 0.1s infinite';
+  }
+
+  if (count === 0) {
+    clearInterval(interval);
+    exploded = true;
+    doExplode();
+  }
+}, 1000);
+
+function doExplode() {
+  document.getElementById('mainScreen').style.display = 'none';
+  const es = document.getElementById('explodeScreen');
+  es.classList.add('show');
+  flashScreen();
+  navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 400]);
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const smoke = document.createElement('div');
+      smoke.className = 'smoke-emoji';
+      smoke.textContent = ['💨','☁️','🔥'][i];
+      smoke.style.animationDelay = (i * 0.3) + 's';
+      es.appendChild(smoke);
+    }, i * 300);
+  }
+}
+
+function checkPassword() {
+  if (exploded) return;
+  const val = document.getElementById('pwInput').value.trim();
+  if (val === PASSWORD) {
+    clearInterval(interval);
+    document.getElementById('mainScreen').style.display = 'none';
+    document.getElementById('safeScreen').classList.add('show');
+    navigator.vibrate && navigator.vibrate([100, 50, 100]);
+  } else {
+    errMsg.style.display = 'block';
+    errMsg.style.animation = 'none';
+    setTimeout(() => errMsg.style.animation = 'shake 0.3s', 10);
+    document.getElementById('pwInput').value = '';
+    flashScreen();
+    spawnSparks();
+    setTimeout(() => errMsg.style.display = 'none', 2000);
+  }
+}
+
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+</script>
+</body>
+</html>
